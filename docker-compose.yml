@@ -1,0 +1,51 @@
+services:
+  backend:
+    build: ./apps
+    container_name: apps
+    restart: always
+    expose: #menggunakan expose agar container lain bisa mengakses port ini, tapi tidak bisa diakses dari luar docker
+      - "3000"
+    environment:
+      - DB_NAME=training
+      - DB_HOST=db
+      - DB_USER=peserta
+      - DB_PASS=password
+      - APP_PORT=3000
+    links:  #urutan deployment harus sesuai dengan urutan ini, karena backend membutuhkan database
+      - db
+    volumes:
+      - app-data:/apps/public/images
+  db:
+    image: "mariadb"
+    container_name: db
+    restart: always
+    links:
+      - phpmyadmin
+    expose:
+      - "3306"
+    environment: #ini adalah environment variable untuk konfigurasi database, bisa diubah sesuai kebutuhan
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_DATABASE=training
+      - MYSQL_USER=peserta
+      - MYSQL_PASSWORD=password
+    volumes: #agar file sql yang ada di folder database bisa langsung dieksekusi saat container database dijalankan, dan agar data database tetap tersimpan meskipun container dihapus
+      - ./apps/database/:/docker-entrypoint-initdb.d
+      - db-data:/var/lib/mysql
+  phpmyadmin:
+    image: "phpmyadmin"
+    container_name: phpmyadmin
+    restart: always
+    ports:
+      - "9080:80"
+    environment:
+      - PMA_HOST=db
+  web:
+    build: ./nginx
+    restart: always
+    ports:
+    - "80:80"
+    depends_on:
+    - backend
+volumes:
+  app-data:
+  db-data:
